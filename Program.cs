@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Linq;
-using System.IO;
-using System.Text;
-using System.Collections;
-using System.Collections.Generic;
 
 // https://www.codingame.com/training/medium/drugtocompare-interactions
 /* You are given a list of prescription drugs. Any two drugs with three or more letters in common 
