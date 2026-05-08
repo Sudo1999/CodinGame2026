@@ -26,10 +26,11 @@ class Solution
         List<string> input = new List<string>();
         //input.AddRange(new string[] { "3", "Xanax", "Ativan", "Viagra" });      // Jeu de test 1 => Result = 2
         //input.AddRange(new string[] { "10", "Zubsolv", "Juluca", "Invega", "Herceptin", "Cinryze", "Sustol", "Zonegran", "Tecartus", "Alfamino", "Depakote" });          // Jeu de test 2 => Result = 5
-        input.AddRange(new string[] { "40", "Xeljanz", "Trisenox", "Afinitor", "Nityr", "Mylotarg", "Phesgo", "Ampyra", "Odomzo", "Delstrigo", "Enhertu", "Thiola", "Gelnique", "Nardil", "Cardura", "Cortef", "Gleevec", "Daypro", "Evista", "Myobloc", "Treanda", "Lumoxiti", "Bosulif", "Levoxyl", "Piqray", "Ciprodex", "Accupril", "Gilotrif", "Cipro", "Anafranil", "Gardasil", "Caplyta", "Imovax", "BeneFIX", "Fycompa", "Iclusig", "Thymoglobulin", "Pristiq", "Korlym", "Jardiance", "Botox" });   // Jeu de test 3 => Result = 11
+        //input.AddRange(new string[] { "40", "Xeljanz", "Trisenox", "Afinitor", "Nityr", "Mylotarg", "Phesgo", "Ampyra", "Odomzo", "Delstrigo", "Enhertu", "Thiola", "Gelnique", "Nardil", "Cardura", "Cortef", "Gleevec", "Daypro", "Evista", "Myobloc", "Treanda", "Lumoxiti", "Bosulif", "Levoxyl", "Piqray", "Ciprodex", "Accupril", "Gilotrif", "Cipro", "Anafranil", "Gardasil", "Caplyta", "Imovax", "BeneFIX", "Fycompa", "Iclusig", "Thymoglobulin", "Pristiq", "Korlym", "Jardiance", "Botox" });   // Jeu de test 3 => Result = 11
+        input.AddRange(new string[] { "80", "Uceris", "Pulmozyme", "Crysvita", "Corvert", "Effexor", "Mepsevii", "Copaxone", "Enfamom", "Praluent", "Amitiza", "Zemaira", "Xembify", "Ziagen", "Boostrix", "Hycamtin", "Viramune", "Aptiom", "Sandostatin", "Azulfidine", "Zyvox", "Oseni", "Riabni", "Folotyn", "Qtern", "Cialis", "Herceptin", "Eloctate", "Nivestym", "Inrebic", "Briviact", "Emflaza", "Menest", "Ventolin", "Faslodex", "Saphris", "Fosrenol", "Dupixent", "Erbitux", "Herzuma", "Arranon", "Lantus", "Durysta", "Diflucan", "Hyalgan", "GlucaGen", "Sutent", "Spravato", "Mvasi", "Synagis", "Targretin", "Recarbrio", "Blincyto", "Cotellic", "Opdivo", "Jynarque", "Mekinist", "InFed", "Premphase", "Gabitril", "Padcev", "Zeposia", "Lumoxiti", "Avycaz", "Kuvan", "Breztri", "Katerzia", "Basaglar", "Vitrakvi", "Gavreto", "Protonix", "Vectra", "Synarel", "Verzenio", "Uptravi", "Shingrix", "Akynzeo", "Aromasin", "Prevymis", "Xospata", "Rayos" });        // Jeu de test 4 => Result = 13
 
         //// Résolution
-        
+
         //int N = int.Parse(Console.ReadLine());      // Line 1: Number of drugs
         int N = int.Parse(input[0] ?? "0");                 // Lecture de l'input (ligne 1)
         string[] drugs = new string[N];
@@ -41,15 +42,13 @@ class Solution
         }
 
         int maxSize = 0;
-        ulong bestSet = 0;
+        ulong bestSet063 = 0;           // Présence ou absence des médicaments 0 à 63
+        ulong bestSet64127 = 0;         // Présence ou absence des médicaments 64 à 127
 
-        ulong[] conflicts = new ulong[N];
-
-        // Chaque médicament correspond à un bit ; un ulong = 64 bits => 64 médicaments
-        // Par exemple si on a 8 médicaments :
-        // conflicts[0] = 0b00000000 // M0 n’a aucun conflit avec un autre médicament
-        // conflicts[1] = 0b00000100 // M1 a un conflit avec le médicament M2
-        // conflicts[2] = 0b00000010 // M2 a un conflit avec le médicament M1
+        ulong[] conflictsAA = new ulong[N];         // Conflits des médicaments 0 à 63 avec les médicaments 0 à 63
+        ulong[] conflictsAB = new ulong[N];       // Conflits des médicaments 0 à 63 avec les médicaments 64 à 127
+        ulong[] conflictsBA = new ulong[N];       // Conflits des médicaments 64 à 127 avec les médicaments 0 à 63
+        ulong[] conflictsBB = new ulong[N];     // Conflits des médicaments 64 à 127 avec les médicaments 64 à 127
 
         // Méthode de comptage des lettres partagées
         static int CountSharedLetters(string a, string b)
@@ -69,18 +68,41 @@ class Solution
         }
 
         // Construire le masque de conflits
-        for (int i = 0; i < N; i++)
+        for (int i = 64; i < N; i++)
         {
-            for (int j = i + 1; j < N; j++)
+            for (int j = 0; j < 64; j++)
             {
                 if (CountSharedLetters(drugs[i], drugs[j]) >= 3)
                 {
-                    conflicts[i] |= 1UL << j;
-                    conflicts[j] |= 1UL << i;
-
-                    // 1UL = un unsigned long (64 bits non signé), soit une ligne de 64 zéros
-                    // << j = décalage à gauche de j positions (par exemple 1UL << 3 = 0000 1000)
-                    // conflicts[i] |= 1UL << j => Le médicament Mi enregistre un conflit à l'emplacement du médicament Mj
+                    conflicts64127avec063[i] |= 1UL << j;
+                    conflicts063avec64127[j] |= 1UL << i;
+                }
+            }
+            for (int j = i; j < N; j++)
+            {
+                if (CountSharedLetters(drugs[i], drugs[j]) >= 3)
+                {
+                    conflicts64127avec64127[i] |= 1UL << j;
+                    conflicts64127avec64127[j] |= 1UL << i;
+                }
+            }
+        }
+        for (int i = 0; i <= N && i <= 64; i++)
+        {
+            for (int j = 0; j < 64; j++)
+            {
+                if (CountSharedLetters(drugs[i], drugs[j]) >= 3)
+                {
+                    conflicts063avec063[i] |= 1UL << j;
+                    conflicts063avec063[j] |= 1UL << i;
+                }
+            }
+            for (int j = i; j < N; j++)
+            {
+                if (CountSharedLetters(drugs[i], drugs[j]) >= 3)
+                {
+                    conflicts063avec64127[i] |= 1UL << j;
+                    conflicts063avec64127[j] |= 1UL << i;
                 }
             }
         }
@@ -93,7 +115,6 @@ class Solution
             {
                 count++;
                 x &= x - 1;     // La formule enlève le bit à 1 le plus à droite
-                // (Contrairement au OU (|), avec le ET (&) le 1 n’est conservé que s’il est présent des deux côtés)
             }
             return count;
         }
@@ -116,7 +137,7 @@ class Solution
             DFS(currentSet, index + 1);
 
             // Option 2 : ajouter le médicament s'il n'y a pas de conflit avec le set déjà constitué
-            if ((currentSet & conflicts[index]) == 0)       // Pruning : on ne l’ajoute que s'il n'y a pas de conflit
+            if ((currentSet & conflicts[index]) == 0)
             {
                 DFS(currentSet | (1UL << index), index + 1);
             }
