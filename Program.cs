@@ -42,73 +42,59 @@ class Solution
         }
 
         int maxSize = 0;
-        ulong bestSet063 = 0;           // Présence ou absence des médicaments 0 à 63
-        ulong bestSet64127 = 0;         // Présence ou absence des médicaments 64 à 127
+        ulong bestSetA = 0;         // Présence ou absence des médicaments 0 à 63
+        ulong bestSetB = 0;         // Présence ou absence des médicaments 64 à 127
 
         ulong[] conflictsAA = new ulong[N];         // Conflits des médicaments 0 à 63 avec les médicaments 0 à 63
-        ulong[] conflictsAB = new ulong[N];       // Conflits des médicaments 0 à 63 avec les médicaments 64 à 127
-        ulong[] conflictsBA = new ulong[N];       // Conflits des médicaments 64 à 127 avec les médicaments 0 à 63
-        ulong[] conflictsBB = new ulong[N];     // Conflits des médicaments 64 à 127 avec les médicaments 64 à 127
+        ulong[] conflictsAB = new ulong[N];         // Conflits des médicaments 0 à 63 avec les médicaments 64 à 127
+        ulong[] conflictsBA = new ulong[N];         // Conflits des médicaments 64 à 127 avec les médicaments 0 à 63
+        ulong[] conflictsBB = new ulong[N];         // Conflits des médicaments 64 à 127 avec les médicaments 64 à 127
 
         // Méthode de comptage des lettres partagées
         static int CountSharedLetters(string a, string b)
         {
-            int[] countA = new int[26];
-            int[] countB = new int[26];
+            int[] counta = new int[26];
+            int[] countb = new int[26];
 
-            foreach (char c in a.ToUpper()) if (char.IsLetter(c)) countA[c - 'A']++;
-            foreach (char c in b.ToUpper()) if (char.IsLetter(c)) countB[c - 'A']++;
+            foreach (char c in a.ToUpper()) if (char.IsLetter(c)) counta[c - 'A']++;
+            foreach (char c in b.ToUpper()) if (char.IsLetter(c)) countb[c - 'A']++;
 
             int shared = 0;
             for (int i = 0; i < 26; i++)
             {
-                shared += Math.Min(countA[i], countB[i]);
+                shared += Math.Min(counta[i], countb[i]);
             }
             return shared;
         }
 
         // Construire le masque de conflits
-        for (int i = 64; i < N; i++)
+        for (int i = 0; i < N; i++)
         {
-            for (int j = 0; j < 64; j++)
+            for (int j = i + 1; j < N; j++)
             {
                 if (CountSharedLetters(drugs[i], drugs[j]) >= 3)
                 {
-                    conflicts64127avec063[i] |= 1UL << j;
-                    conflicts063avec64127[j] |= 1UL << i;
-                }
-            }
-            for (int j = i; j < N; j++)
-            {
-                if (CountSharedLetters(drugs[i], drugs[j]) >= 3)
-                {
-                    conflicts64127avec64127[i] |= 1UL << j;
-                    conflicts64127avec64127[j] |= 1UL << i;
-                }
-            }
-        }
-        for (int i = 0; i <= N && i <= 64; i++)
-        {
-            for (int j = 0; j < 64; j++)
-            {
-                if (CountSharedLetters(drugs[i], drugs[j]) >= 3)
-                {
-                    conflicts063avec063[i] |= 1UL << j;
-                    conflicts063avec063[j] |= 1UL << i;
-                }
-            }
-            for (int j = i; j < N; j++)
-            {
-                if (CountSharedLetters(drugs[i], drugs[j]) >= 3)
-                {
-                    conflicts063avec64127[i] |= 1UL << j;
-                    conflicts063avec64127[j] |= 1UL << i;
+                    if (i < 64 && j < 64)
+                    {
+                        conflictsAA[i] |= 1UL << j;
+                        conflictsAA[j] |= 1UL << i;
+                    }
+                    if (i < 64 && j >= 64)
+                    {
+                        conflictsAB[i] |= 1UL << j;
+                        conflictsBA[j] |= 1UL << i;
+                    }
+                    if (i >= 64 && j >= 64)
+                    {
+                        conflictsBB[i] |= 1UL << j;
+                        conflictsBB[j] |= 1UL << i;
+                    }
                 }
             }
         }
 
-        // Méthode de comptage du nombre de bits à 1 dans un ulong
-        static int CountBits(ulong x)
+        // Méthode de comptage du nombre de bits à 1 dans les ulongs de résultat
+        static int CountBits(ulong x, ulong y)
         {
             int count = 0;
             while (x != 0)
@@ -116,40 +102,66 @@ class Solution
                 count++;
                 x &= x - 1;     // La formule enlève le bit à 1 le plus à droite
             }
+            while (y != 0)
+            {
+                count++;
+                y &= y - 1;     // La formule enlève le bit à 1 le plus à droite
+            }
             return count;
         }
 
         // Méthode de Backtracking avec Bitmask
-        void DFS(ulong currentSet, int index)		// DFS = Depth-First Search 
+        void DFS(ulong currentSetA, ulong currentSetB, int index)		// DFS = Depth-First Search 
         {
             if (index == N)
             {
-                int size = CountBits(currentSet);
+                int size = CountBits(currentSetA, currentSetB);
                 if (size > maxSize)
                 {
                     maxSize = size;
-                    bestSet = currentSet;
+                    bestSetA = currentSetA;
+                    bestSetB = currentSetB;
                 }
                 return;
             }
 
             // Option 1 : ignorer le médicament drugs[index]
-            DFS(currentSet, index + 1);
+            DFS(currentSetA, currentSetB, index + 1);
 
             // Option 2 : ajouter le médicament s'il n'y a pas de conflit avec le set déjà constitué
-            if ((currentSet & conflicts[index]) == 0)
+
+            //if ((currentSet & conflicts[index]) == 0)
+            //{
+                //DFS(currentSet | (1UL << index), index + 1);
+            //}
+
+            if (index < 64)
             {
-                DFS(currentSet | (1UL << index), index + 1);
+                if ((currentSetA & conflictsAA[index]) == 0 && (currentSetB & conflictsAB[index]) == 0)
+                {
+                    DFS(currentSetA | (1UL << index), currentSetB, index + 1);
+                }
+            }
+            else
+            {
+                if ((currentSetA & conflictsBA[index]) == 0 && (currentSetB & conflictsBB[index]) == 0)
+                {
+                    DFS(currentSetA, currentSetB | (1UL << index-64), index + 1);
+                }
             }
         }
 
-        DFS(0, 0);
+        DFS(0, 0, 0);
 
         // Affichage du résultat
         Console.WriteLine($"Nombre maximum de médicaments pouvant être utilisés ensemble : {maxSize}.");
         for (int i = 0; i < N; i++)
         {
-            if ((bestSet & (1UL << i)) != 0)
+            if (i < 64 && (bestSetA & (1UL << i)) != 0)
+            {
+                Console.WriteLine(drugs[i]);
+            }
+            else if ((bestSetB & (1UL << i)) != 0)
             {
                 Console.WriteLine(drugs[i]);
             }
